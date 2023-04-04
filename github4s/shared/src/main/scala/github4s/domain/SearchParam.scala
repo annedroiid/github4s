@@ -16,6 +16,9 @@
 
 package github4s.domain
 
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, ZonedDateTime}
+
 sealed trait SearchParam {
   protected def paramName: String
   protected def paramValue: String
@@ -97,4 +100,61 @@ final case class TopicParam(topic: String) extends SearchParam {
   override def paramName: String = "topic"
 
   override def paramValue: String = topic
+}
+
+final case class AuthorParam(author: String) extends SearchParam {
+  override protected def paramName: String = "author"
+
+  override protected def paramValue: String = author
+}
+
+sealed trait PullRequestStatus extends SearchParam {
+  override def paramName: String = "is"
+}
+
+case object PullRequestStatusMerged extends PullRequestStatus {
+  override protected def paramValue: String = "merged"
+}
+
+case object PullRequestStatusUnmerged extends PullRequestStatus {
+  override protected def paramValue: String = "unmerged"
+}
+
+sealed abstract class DateOperator(val value: String)
+
+object DateOperator {
+  case object AfterDate      extends DateOperator(">")
+  case object AfterOrOnDate  extends DateOperator(">=")
+  case object BeforeDate     extends DateOperator("<")
+  case object BeforeOrOnDate extends DateOperator("<=")
+  case object OnDate         extends DateOperator("")
+}
+
+sealed trait PullRequestMergedParam extends SearchParam {
+  override def paramName: String = "merged"
+
+  def dateFormat: DateTimeFormatter     = DateTimeFormatter.ISO_DATE
+  def dateTimeFormat: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
+}
+
+final case class PullRequestMergedDate(date: LocalDate, operator: DateOperator)
+    extends PullRequestMergedParam {
+  override def paramValue: String = operator.value + date.format(dateFormat)
+}
+
+final case class PullRequestMergedDateTime(date: ZonedDateTime, operator: DateOperator)
+    extends PullRequestMergedParam {
+  override def paramValue: String = operator.value + date.format(dateTimeFormat)
+}
+
+final case class PullRequestMergedBetweenDates(date1: LocalDate, date2: LocalDate)
+    extends PullRequestMergedParam {
+  override protected def paramValue: String =
+    date1.format(dateFormat) + ".." + date2.format(dateFormat)
+}
+
+final case class PullRequestMergedBetweenDateTimes(date1: ZonedDateTime, date2: ZonedDateTime)
+    extends PullRequestMergedParam {
+  override protected def paramValue: String =
+    date1.format(dateTimeFormat) + ".." + date2.format(dateTimeFormat)
 }
